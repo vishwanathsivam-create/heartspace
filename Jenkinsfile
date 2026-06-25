@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        APP_SERVER = '15.206.209.221'
+        APP_SERVER = '172.31.4.164'
         APP_DIR = '/home/ubuntu/heartspace'
     }
 
