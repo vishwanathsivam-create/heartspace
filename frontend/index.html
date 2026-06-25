@@ -16,16 +16,21 @@
     input, select, textarea { width: 100%; padding: 12px; margin-bottom: 12px; border: 2px solid #ffd6e7; border-radius: 8px; font-size: 1rem; outline: none; }
     input:focus, select:focus, textarea:focus { border-color: #ff6b9d; }
     textarea { height: 100px; resize: none; }
+    .photo-upload { border: 2px dashed #ffd6e7; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 12px; cursor: pointer; color: #ff6b9d; }
+    .photo-upload:hover { background: #fff0f5; }
+    #photo-preview { max-width: 100%; border-radius: 8px; margin-bottom: 12px; display: none; }
     button { background: #ff6b9d; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1rem; cursor: pointer; width: 100%; }
     button:hover { background: #ff4785; }
     .notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
     .note-card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(255,107,157,0.15); position: relative; }
     .note-card h3 { color: #ff6b9d; margin-bottom: 8px; }
     .note-card p { color: #555; line-height: 1.5; margin-bottom: 12px; }
+    .note-card img { width: 100%; border-radius: 8px; margin-bottom: 12px; }
     .note-meta { font-size: 0.8rem; color: #aaa; }
     .delete-btn { position: absolute; top: 12px; right: 12px; background: #ffe0eb; color: #ff6b9d; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 1rem; }
     .delete-btn:hover { background: #ff6b9d; color: white; }
     .empty { text-align: center; color: #aaa; padding: 40px; }
+    .loading { text-align: center; color: #ff6b9d; padding: 20px; }
   </style>
 </head>
 <body>
@@ -44,6 +49,11 @@
         <option value="Mom">Mom 💐</option>
       </select>
       <textarea id="message" placeholder="Write your note here..."></textarea>
+      <div class="photo-upload" onclick="document.getElementById('photo-input').click()">
+        📸 Click to add a photo (optional)
+      </div>
+      <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="previewPhoto(this)"/>
+      <img id="photo-preview" alt="Preview"/>
       <button onclick="submitNote()">Send with love 💌</button>
     </div>
 
@@ -53,13 +63,25 @@
   <script>
     const API = `http://${window.location.hostname}:3000`;
 
+    function previewPhoto(input) {
+      const preview = document.getElementById('photo-preview');
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
     async function loadNotes() {
       try {
         const res = await fetch(`${API}/api/notes`);
         const data = await res.json();
         renderNotes(data.notes);
       } catch(e) {
-        document.getElementById('notes-container').innerHTML = '<p class="empty">Could not load notes. Make sure backend is running.</p>';
+        document.getElementById('notes-container').innerHTML = '<p class="empty">Could not load notes.</p>';
       }
     }
 
@@ -73,6 +95,7 @@
         <div class="note-card">
           <button class="delete-btn" onclick="deleteNote('${note.id}')">×</button>
           <h3>To: ${note.recipient} 💕</h3>
+          ${note.photoUrl ? `<img src="${note.photoUrl}" alt="Memory photo"/>` : ''}
           <p>${note.message}</p>
           <div class="note-meta">From ${note.author} • ${new Date(note.createdAt).toLocaleDateString()}</div>
         </div>
@@ -83,14 +106,27 @@
       const author = document.getElementById('author').value.trim();
       const message = document.getElementById('message').value.trim();
       const recipient = document.getElementById('recipient').value;
+      const photoInput = document.getElementById('photo-input');
+
       if (!author || !message) { alert('Please fill in all fields!'); return; }
+
+      const formData = new FormData();
+      formData.append('author', author);
+      formData.append('message', message);
+      formData.append('recipient', recipient);
+      if (photoInput.files[0]) {
+        formData.append('photo', photoInput.files[0]);
+      }
+
       await fetch(`${API}/api/notes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ author, message, recipient })
+        body: formData
       });
+
       document.getElementById('author').value = '';
       document.getElementById('message').value = '';
+      document.getElementById('photo-input').value = '';
+      document.getElementById('photo-preview').style.display = 'none';
       loadNotes();
     }
 
