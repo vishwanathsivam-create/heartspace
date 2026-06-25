@@ -27,10 +27,10 @@ pipeline {
                 sshagent(['app-server-ssh']) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER} "
-                            mkdir -p ${APP_DIR}
+                            mkdir -p ${APP_DIR}/public
                         "
                         scp -o StrictHostKeyChecking=no -r backend/* ubuntu@${APP_SERVER}:${APP_DIR}/
-                        scp -o StrictHostKeyChecking=no frontend/index.html ubuntu@${APP_SERVER}:${APP_DIR}/
+                        scp -o StrictHostKeyChecking=no frontend/index.html ubuntu@${APP_SERVER}:${APP_DIR}/public/
                         ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER} "
                             cd ${APP_DIR} &&
                             npm install &&
